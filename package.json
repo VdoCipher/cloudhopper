@@ -1,0 +1,24 @@
+{
+  "name": "cloudhopper",
+  "version": "1.0.0",
+  "description": "Yet another framework for deploying your APIs with AWS Lambda",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -b --timeout 10000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VdoCipher/cloudhopper.git"
+  },
+  "keywords": [
+    "lambda",
+    "api",
+    "framework"
+  ],
+  "author": "Vibhav Sinha <v@vsinha.me> (http://vsinha.me)",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/VdoCipher/cloudhopper/issues"
+  },
+  "homepage": "https://github.com/VdoCipher/cloudhopper#readme"
+}
