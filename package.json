@@ -1,6 +1,6 @@
 {
   "name": "cloudhopper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Yet another framework for deploying your APIs with AWS Lambda",
   "main": "index.js",
   "scripts": {
