@@ -15,6 +15,7 @@
     "api",
     "framework"
   ],
+  "bin": "./cli.js",
   "author": "Vibhav Sinha <v@vsinha.me> (http://vsinha.me)",
   "license": "GPL-3.0",
   "bugs": {
