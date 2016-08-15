@@ -132,4 +132,7 @@ just use wildcards and forward everything to the client.
 
 
 ## License
+
+Copyright 2016 [VdoCipher Media Solutions](https://www.vdocipher.com)
+
 GPL-3.0
