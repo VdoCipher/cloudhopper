@@ -106,6 +106,8 @@ The lambda function operates from your VPC with no public DNS name. To connect t
 
 The Request Response objects partially emulate the corresponding objects of Express Framework such that you can easily swap express instead of cloudhopper and run the project anywhere.
 
+![cloudcraft - cloudhopper setup](https://cloud.githubusercontent.com/assets/1254236/17661211/62e620dc-62fb-11e6-8708-52aa43d9f710.png)
+
 
 ## Limitations
 
