@@ -3,6 +3,9 @@ Deploy your APIs with AWS Lambda
 
 **Important : Under Construction**
 
+[![Build Status](https://travis-ci.org/VdoCipher/cloudhopper.svg?branch=master)](https://travis-ci.org/VdoCipher/cloudhopper)
+
+
 
 ### Why CloudHopper?
 

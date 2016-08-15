@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/VdoCipher/cloudhopper/issues"
   },
-  "homepage": "https://github.com/VdoCipher/cloudhopper#readme"
+  "homepage": "https://github.com/VdoCipher/cloudhopper#readme",
+  "devDependencies": {
+    "chai": "^3.5.0"
+  }
 }
