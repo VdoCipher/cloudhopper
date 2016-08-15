@@ -4,6 +4,7 @@ Deploy your APIs with AWS Lambda
 **Important : Under Construction**
 
 [![Build Status](https://travis-ci.org/VdoCipher/cloudhopper.svg?branch=master)](https://travis-ci.org/VdoCipher/cloudhopper)
+[![Coverage Status](https://coveralls.io/repos/github/VdoCipher/cloudhopper/badge.svg?branch=master)](https://coveralls.io/github/VdoCipher/cloudhopper?branch=master)
 
 
 
