@@ -1,3 +1,5 @@
+'use strict';
+
 let Response = require('./lib/response')
 let dockerInit;
 let dockerInitState	= false;
