@@ -1,6 +1,6 @@
 {
   "name": "cloudhopper",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Yet another framework for deploying your APIs with AWS Lambda",
   "main": "index.js",
   "scripts": {
@@ -28,6 +28,7 @@
     "bluebird": "^3.4.1",
     "chai": "^3.5.0",
     "minimist": "^1.2.0",
-    "mocha": "^3.0.2"
+    "mocha": "^3.0.2",
+    "wildcard": "^1.1.2"
   }
 }
