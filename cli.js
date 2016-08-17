@@ -27,7 +27,7 @@ class CLI {
 		var swag = {
 			swagger: 2.0,
 			info: {
-				title: "VdoCipher"
+				title: this.config.apiTitle
 			},
 			paths: { }
 		}
