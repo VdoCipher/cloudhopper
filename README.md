@@ -116,7 +116,14 @@ The api will need to connect to various aws or third party services in order to 
 When you deploy your code, cloudhopper copies the production component of `stageVariables.json` to the API Gateway stage variables. Cloudhopper sets up the Gateway to pass these variables to lambda.
 
 ###### Deferred procurement of variables 
+
 This workflow requires a slightly different application structure. You need to require your routes and database config files only when you have obtained the variables. For this reason, we have a setInit function. Here is a sample of what it might look like. You *must* write your requires inside this `setInit` function. 
+
+
+## Deploy
+
+The deploy scripts goes through your node_modules folder and tries to create a zip archive for only the required files excluding the dev dependency
+
 
 ## Limitations
 
