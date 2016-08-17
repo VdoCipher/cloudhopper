@@ -23,7 +23,11 @@
   },
   "homepage": "https://github.com/VdoCipher/cloudhopper#readme",
   "devDependencies": {
+    "adm-zip": "^0.4.7",
+    "aws-sdk": "^2.5.0",
+    "bluebird": "^3.4.1",
     "chai": "^3.5.0",
+    "minimist": "^1.2.0",
     "mocha": "^3.0.2"
   }
 }
