@@ -109,6 +109,15 @@ The Request Response objects partially emulate the corresponding objects of Expr
 ![cloudcraft - cloudhopper setup](https://cloud.githubusercontent.com/assets/1254236/17661211/62e620dc-62fb-11e6-8708-52aa43d9f710.png)
 
 
+### Configuration Parameters
+
+The api will need to connect to various aws or third party services in order to exchange data. We have already set up a NAT instance for providing an external route to our lambda. The hostnames or the access parameters should never be hard coded in the application. It should also not be part of the version control. For this purpose, AWS provides stage variables in API Gateway. In cloudhopper you save your variables in a file `stageVariables.json` which looks like this :
+
+When you deploy your code, cloudhopper copies the production component of `stageVariables.json` to the API Gateway stage variables. Cloudhopper sets up the Gateway to pass these variables to lambda.
+
+###### Deferred procurement of variables 
+This workflow requires a slightly different application structure. You need to require your routes and database config files only when you have obtained the variables. For this reason, we have a setInit function. Here is a sample of what it might look like. You *must* write your requires inside this `setInit` function. 
+
 ## Limitations
 
 * Only JSON I/O
