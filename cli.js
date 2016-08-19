@@ -201,12 +201,27 @@ class CLI {
 			console.log(data)
 		}).catch(console.log)
 	}
+
+
+	help() {
+		let helpText = `
+		Usage: 
+			npm run cloudhopper -- COMMAND
+
+		COMMAND can be one of:
+		1. setUpApi: overwrites the API Gateway to route all data to lambda running cloudhopper
+		2. deploy: Creates a lambda deployment package and uploads it to lambda
+		3. runLocal: Prepares an express server and servers the API locally
+		4. help: displays this help text
+		`
+		console.log(helpText)
+	}
 }
 
 
 
 var c = new CLI()
-var f = c[argv._[0]].bind(c);
+var f = c[argv._[0]]
 
-f || console.error("Invalid command")
-f && f()
+f || c.help()
+f && f.bind(c)()
