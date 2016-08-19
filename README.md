@@ -48,7 +48,7 @@ let Router = require('router');
 let router = Router();
 let cloudhopper = require('cloudhopper')
 
-router.get('/', (req, res) => {
+router.get('/', function(req, res) {
 	res.json({message: "Hello world"})
 });
 cloudhopper.use(router)
