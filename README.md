@@ -1,8 +1,6 @@
 # CloudHopper
 Deploy your APIs with AWS Lambda
 
-**Important : Under Construction**
-
 [![Build Status](https://travis-ci.org/VdoCipher/cloudhopper.svg?branch=master)](https://travis-ci.org/VdoCipher/cloudhopper)
 [![Coverage Status](https://coveralls.io/repos/github/VdoCipher/cloudhopper/badge.svg?branch=master)](https://coveralls.io/github/VdoCipher/cloudhopper?branch=master)
 
@@ -11,10 +9,11 @@ Deploy your APIs with AWS Lambda
 ### Why CloudHopper?
 
 * **No vendor lock-in** Project can also be deployed as a normal express application.
-* **Fast startup time** With a single function for all end-points, the API is not affected by cold-start latency.
+* **Fast startup time** With a single function for all end-points, the API is less affected by cold-start latency.
 * **No intrusive persmissions** The project is designed to just do the work of an application. It requires a finite set of IAM persmissions for setup. *This also means you need to do some configuration on AWS for this to work*
-* **Local testing** Local functional test helper to make calls to API endpoints
+* **Local testing** Local testing before deploying to production
 * **Small deployment package** The deploy tool tries to create a smaller deployment package by only including the required files
+* **ExpressJS APIs** The request response in lambda emulates the ExpressJS API which makes it very easy to scaffold your API
 
 
 #### Requirements
@@ -33,11 +32,11 @@ Add the following scripts to your package.json
 
 ```json
 "scripts" : {
-	"deploy": "cloudhopper deploy"
+	"cloudhopper": "cloudhopper"
 }
 ```
 
-Your index.js should look like this:
+Your index.js should look something like this:
 ```json
 'use strict';
 
@@ -52,7 +51,7 @@ cloudhopper.use(router)
 exports.handler = cloudhopper.handler
 
 ```
-Create a new IAM user with the following permissions:
+Make sure the IAM user in `~/.aws/credentials` has the following permissions:
 ```
 {
     "Version": "2012-10-17",
@@ -82,21 +81,33 @@ Create a new IAM user with the following permissions:
 Create a git-ignored file `local.cloudhopper.json` with the following:
 ```
 {
-	AWS_ACCESS_KEY_ID: "xxxxxxxxxxxxx",
-	AWS_SECRET_ACCESS_KEY: "xxxxxxxxxx",
 	lambda_function_name: "xxxxxx",
 	apigateway_id: "xxxxx"
+	"restApiId" : "<rest api>",
+	"stageName": "<stage name>",
+	"apiTitle": "<name of API, this will override API name>",
+	"region": "<region>",
+	"lambdaName": "<name of lambda function>",
+	"tempFile": "<temp file which is in ignored list>",
+	"lambdaArn": "<lambda_arn>",
+	"stageVariables": {
+		"development": { },
+		"production": { }
+	}
 }
 ```
-
+Run your API locally at http://127.0.0.1:3000
 ```
-npm run deploy
+npm run cloudhopper -- runLocal
 ```
-
-This will setup the API Gateway and Lambda functions for you.
-
-You should get a message like this:
-`URL: https://xxxxxxxx.apigateway.com`
+Packages the function and deploys it on Lambda
+```
+npm run cloudhopper -- deploy
+```
+Prepares the API Gateway for routing all resources to Lambda
+```
+npm run cloudhopper -- setUpAPi
+```
 
 
 ## Architecture
@@ -111,18 +122,23 @@ The Request Response objects partially emulate the corresponding objects of Expr
 
 ### Configuration Parameters
 
-The api will need to connect to various aws or third party services in order to exchange data. We have already set up a NAT instance for providing an external route to our lambda. The hostnames or the access parameters should never be hard coded in the application. It should also not be part of the version control. For this purpose, AWS provides stage variables in API Gateway. In cloudhopper you save your variables in a file `stageVariables.json` which looks like this :
+The api will need to connect to various aws or third party services in order to exchange data. You should have already set up a NAT instance for providing an external route to our lambda. The hostnames or the access parameters should never be hard coded in the application. It should also not be part of the version control. For this purpose, AWS provides stage variables in API Gateway. In cloudhopper you save your variables in a file `stageVariables.json` which looks like this :
 
 When you deploy your code, cloudhopper copies the production component of `stageVariables.json` to the API Gateway stage variables. Cloudhopper sets up the Gateway to pass these variables to lambda.
 
-###### Deferred procurement of variables 
+##### Deferred procurement of variables 
 
 This workflow requires a slightly different application structure. You need to require your routes and database config files only when you have obtained the variables. For this reason, we have a setInit function. Here is a sample of what it might look like. You *must* write your requires inside this `setInit` function. 
 
 
 ## Deploy
 
-The deploy scripts goes through your node_modules folder and tries to create a zip archive for only the required files excluding the dev dependency
+The deploy scripts goes through your node_modules folder and tries to create a zip archive for only the required files excluding the dev dependencies.
+
+
+## Local testing
+
+Simply run `npm run cloudhopper -- runLocal` and your API is running on `127.0.0.1:3000`
 
 
 ## Limitations
