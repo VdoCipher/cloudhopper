@@ -41,7 +41,7 @@ Add the following scripts to your package.json
 ```
 
 Your index.js should look something like this:
-```json
+```javascript
 'use strict';
 
 let Router = require('router');
