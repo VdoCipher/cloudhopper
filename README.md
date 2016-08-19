@@ -1,4 +1,6 @@
 # CloudHopper
+
+[![Join the chat at https://gitter.im/VdoCipher/cloudhopper](https://badges.gitter.im/VdoCipher/cloudhopper.svg)](https://gitter.im/VdoCipher/cloudhopper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Deploy your APIs with AWS Lambda
 
 [![Build Status](https://travis-ci.org/VdoCipher/cloudhopper.svg?branch=master)](https://travis-ci.org/VdoCipher/cloudhopper)
