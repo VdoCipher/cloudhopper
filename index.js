@@ -11,6 +11,19 @@ exports.setInit = (initFunction) => {
 
 exports.use = (router_) => {
 	router = router_
+
+	if (process.env.NODE_ENV === "development") {
+		global.stage_vars = require(process.cwd() + '/local.cloudhopper.config.json').stageVariables.development
+		dockerInit()
+		var express = require('express');
+		var app = express()
+		var bodyParser = require('body-parser');
+		app.use(bodyParser.json());
+		app.use('/', router)
+		app.listen(3000, () => {
+			console.log("listening")
+		})
+	}
 }
 
 exports.handler = (event, context, callback) => {

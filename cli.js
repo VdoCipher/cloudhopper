@@ -18,6 +18,11 @@ class CLI {
 		this.config = require(process.cwd() + "/local.cloudhopper.config.json")
 	}
 
+	runLocal() {
+		process.env.NODE_ENV = "development"
+		require(path.join(process.cwd(), 'index.js'))
+	}
+
 	deploy() {
 		var ignored = fs.readFileSync('.gitignore').toString().split("\n")
 		ignored.push('node_modules')
