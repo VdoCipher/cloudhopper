@@ -20,8 +20,10 @@ exports.use = (router_) => {
 		var bodyParser = require('body-parser');
 		app.use(bodyParser.json());
 		app.use('/', router)
-		app.listen(3000, () => {
-			console.log("listening")
+
+		let port = process.env.PORT || 3000
+		app.listen(port, () => {
+			console.log(`listening on http://127.0.0.1:${port}`)
 		})
 	}
 }
