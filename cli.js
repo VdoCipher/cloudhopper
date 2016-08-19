@@ -3,11 +3,12 @@
 
 
 let aws = require("aws-sdk")
-let AdmZip = require('adm-zip')
 let fs = require("fs")
 let argv = require('minimist')(process.argv.slice(2))
 let bluebird = require("bluebird");
 let path = require('path')
+let wildcard = require('wildcard')
+let JSZip = require('jszip')
 
 bluebird.promisifyAll(fs)
 
@@ -18,7 +19,71 @@ class CLI {
 	}
 
 	deploy() {
-		console.log("501 Not Implemented")
+		var ignored = fs.readFileSync('.gitignore').toString().split("\n")
+		ignored.push('node_modules')
+		ignored = ignored.filter(l => (l !== '' && l.trim().substr(0,1) !== '#'))
+
+		var getAllFiles = (baseDir, Ignore) => fs.readdirAsync(baseDir)
+			.then(files => Promise.all(files
+				.filter(f => f.substr(0,1) !== ".")
+				.filter(f => ignored.reduce((a, b) => !Ignore || (a && !wildcard(b, f)), true))
+				.map(f => path.join(baseDir, f))
+				.map(f => fs.statAsync(f)
+					.then(stat => {
+						if(stat.isDirectory())
+							return getAllFiles(f)
+						else if (stat.isFile())
+							return f
+					})
+				)
+			))
+			.then(files => [].concat(...files))
+		var zip = new JSZip();
+		var blacklist = ['md', 'html', 'git', 'gitignore'];
+		var includeDependencies = (baseDir, ignore) => {
+			return getAllFiles(baseDir, ignore)
+				.then(files => {
+					return Promise.all(files.map(f => {
+						zip.file(f.replace(process.cwd(), ''), fs.readFileSync(f))
+					}))}
+				)
+				.then(() => {
+					var b = require(path.join(baseDir, 'package.json')).dependencies
+					var a = Object.keys(b || {})
+						.map(module => includeDependencies(path.join(process.cwd(), 'node_modules', module), false))
+					return Promise.all(a)
+				})
+		}
+		includeDependencies(process.cwd(), true)
+			.then(()=> {
+				console.log("writing to file ")
+				var config = this.config;
+				zip
+					.generateNodeStream({
+						type:'nodebuffer',
+						streamFiles:true,
+						compression: 'DEFLATE',
+						compressionOptions: {
+							level: 9
+						}
+					})
+					.pipe(fs.createWriteStream(config.tempFile))
+					.on('finish', function () {
+						console.log("Zip created uploading... ")
+						var lambda= new aws.Lambda({
+							region: config.region
+						});
+						var params = {
+						  FunctionName: config.lambdaName,
+						  ZipFile: fs.readFileSync(config.tempFile)
+						};
+						lambda.updateFunctionCode(params).promise()
+							.then(data => {
+								console.log(data)
+							})
+							.catch(console.log)
+					})
+			})
 	}
 
 
