@@ -51,6 +51,12 @@ let cloudhopper = require('cloudhopper')
 router.get('/', (req, res) => {
 	res.json({message: "Hello world"})
 });
+router.use((req, res) => {
+	res.status(404).json({
+		message: "Endpoint does not exist"
+	})
+});
+
 cloudhopper.use(router)
 exports.handler = cloudhopper.handler
 
@@ -154,6 +160,8 @@ Simply run `npm run cloudhopper -- runLocal` and your API is running on `127.0.0
 ## FAQ
 
 **1. Why have a single function for all API end-points?**
+
+Having a single lambda function also helps to keep redundancy at a minimum and IMO keeps the project much more organized. All endpoints often need the same kind of db models and it feels quite useless to separate them into isolated blocks of code. The traditional resource based code structure feel more familiar.
 
 Lambda works on docker containers on AWS managed ec2 instances. If you do not call a Lambda function for sometime, the docker is destroyed. A fresh start will take extra time because a new docker will be set up with your code.
 
