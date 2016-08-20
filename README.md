@@ -28,6 +28,10 @@ Deploy your APIs with AWS Lambda
 NPM init your package and add a `index.js`
 
 ```
+mkdir myapp
+cd myapp
+touch index.js
+npm init
 npm i -S cloudhopper
 ```
 
