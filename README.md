@@ -25,7 +25,7 @@ Deploy your APIs with AWS Lambda
 
 ## Getting started
 
-NPM init your package and add a `index.js`
+Step 1: NPM init your package and add a `index.js`
 
 ```
 mkdir myapp
@@ -36,7 +36,7 @@ npm i -S cloudhopper
 ```
 
 
-Add the following scripts to your package.json
+Step 2: Add the following scripts to your package.json
 
 ```json
 "scripts" : {
@@ -44,7 +44,7 @@ Add the following scripts to your package.json
 }
 ```
 
-Your index.js should look something like this:
+Step 3: Your index.js should look something like this:
 ```javascript
 'use strict';
 
@@ -65,7 +65,7 @@ cloudhopper.use(router)
 exports.handler = cloudhopper.handler
 
 ```
-Make sure the IAM user in `~/.aws/credentials` has the following permissions:
+Step 4: Make sure the IAM user in `~/.aws/credentials` has the following permissions:
 ```
 {
     "Version": "2012-10-17",
@@ -91,12 +91,13 @@ Make sure the IAM user in `~/.aws/credentials` has the following permissions:
     ]
 }
 ```
+Step 5: Create an empty API Gateway and basic lambda function.
 
-Create a git-ignored file `local.cloudhopper.json` with the following:
+Step 6: Create a git-ignored file `local.cloudhopper.json` with the following:
 ```
 {
-	lambda_function_name: "xxxxxx",
-	apigateway_id: "xxxxx"
+	"lambda_function_name": "xxxxxx",
+	"apigateway_id": "xxxxx"
 	"restApiId" : "<rest api>",
 	"stageName": "<stage name>",
 	"apiTitle": "<name of API, this will override API name>",
@@ -114,27 +115,31 @@ Run your API locally at http://127.0.0.1:3000
 ```
 npm run cloudhopper -- runLocal
 ```
-Packages the function and deploys it on Lambda
-```
-npm run cloudhopper -- deploy
-```
-Prepares the API Gateway for routing all resources to Lambda
+Step 7: Prepare the API and packages the function and deploys it on Lambda
 ```
 npm run cloudhopper -- setUpAPi
+npm run cloudhopper -- deploy
 ```
 
 
 ## Architecture
 
-This framework bootstraps an API Gateway which will forward everything to the lambda function.
-The lambda function operates from your VPC with no public DNS name. To connect to external network or a non-VPC endpoints or another region in your account, it requires a NAT Gateway/Instance with a private subnet.
+#### External connection:
 
-The Request Response objects partially emulate the corresponding objects of Express Framework such that you can easily swap express instead of cloudhopper and run the project anywhere.
+This framework bootstraps an API Gateway which will forward everything to the lambda function. The lambda function operates from your VPC with no public DNS name. This means it can not connect to anything outside of your assigned VPC.
 
+To connect to external network or a non-VPC endpoints or another region in your account, it requires a NAT Gateway/Instance with a private subnet.
 ![cloudcraft - cloudhopper setup](https://cloud.githubusercontent.com/assets/1254236/17661211/62e620dc-62fb-11e6-8708-52aa43d9f710.png)
 
 
-### Configuration Parameters
+##### Using Express API
+The Request Response objects partially emulate the corresponding objects of Express Framework such that you can easily swap express instead of cloudhopper and run the project anywhere.
+That said there are limited response methods that can be called: `json`, `status`, `end` and `redirect`. 
+
+These should be sufficient for an API but we can always discuss these on issues.
+
+
+#### Configuration Parameters
 
 The api will need to connect to various aws or third party services in order to exchange data. You should have already set up a NAT instance for providing an external route to our lambda. The hostnames or the access parameters should never be hard coded in the application. It should also not be part of the version control. For this purpose, AWS provides stage variables in API Gateway. In cloudhopper you save your variables in a file `stageVariables.json` which looks like this :
 
