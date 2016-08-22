@@ -33,6 +33,9 @@ cd myapp
 touch index.js
 npm init
 npm i -S cloudhopper
+cd node_modules/cloudhopper/
+npm install 
+cd ../../
 ```
 
 
