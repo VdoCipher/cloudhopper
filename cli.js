@@ -15,7 +15,8 @@ bluebird.promisifyAll(fs)
 
 class CLI {
 	constructor() {
-		this.config = require(process.cwd() + "/local.cloudhopper.config.json")
+		var env = (process.env.NODE_ENV==="production")?"production":"development"
+		this.config = require(process.cwd() + "/local.cloudhopper.config.json")[env]
 	}
 
 	runLocal() {
@@ -179,7 +180,6 @@ class CLI {
 	}
 
 	setUpApi() {
-		var stageInfo = this.config.stageVariables.production
 		var apigateway = new aws.APIGateway({
 			region: this.config.region
 		});
@@ -195,7 +195,7 @@ class CLI {
 				restApiId : this.config.restApiId,
 				stageName : this.config.stageName,
 				cacheClusterEnabled: false,
-				variables: stageInfo.production
+				variables: this.config.stageVariables
 			}).promise()
 		}).then((data) => {
 			console.log(data)
