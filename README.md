@@ -184,7 +184,7 @@ Since, we are using the same function for multiple end-points, we need to have
 some kind of routing logic in the function itself. This makes the Gateway kind
 of redundant.
 Also, with API Gateway, non-existent end-points are returned with a wierd
-"Missing Authwentication Error" which can not be overridden. This may not be
+"Missing Authentication Error" which can not be overridden. This may not be
 404 or 415 that you wish to return to your client. It is therefore better to
 just use wildcards and forward everything to the client.
 
