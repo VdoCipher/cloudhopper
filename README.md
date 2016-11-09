@@ -1,5 +1,8 @@
 # CloudHopper
 
+
+AWS Lambda has now a better method of Proxy Integration with API Gateway. As such, this repo is now depraced. I am working on updating it to make better use of latest features in Lambda and API-G.
+
 [![Join the chat at https://gitter.im/VdoCipher/cloudhopper](https://badges.gitter.im/VdoCipher/cloudhopper.svg)](https://gitter.im/VdoCipher/cloudhopper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/VdoCipher/cloudhopper.svg?branch=master)](https://travis-ci.org/VdoCipher/cloudhopper)
 [![Coverage Status](https://coveralls.io/repos/github/VdoCipher/cloudhopper/badge.svg?branch=master)](https://coveralls.io/github/VdoCipher/cloudhopper?branch=master)
