@@ -1,0 +1,46 @@
+---
+swagger: "2.0"
+info:
+  title: "API_GATEWAY_TITLE"
+schemes:
+- "https"
+paths:
+  /:
+    x-amazon-apigateway-any-method:
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "200 response"
+          schema:
+            $ref: "#/definitions/Empty"
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+        uri: "arn:aws:apigateway:REGION:lambda:path/2015-03-31/functions/LAMBDA_ARN/invocations"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        type: "aws_proxy"
+  /{proxy+}:
+    x-amazon-apigateway-any-method:
+      produces:
+      - "application/json"
+      parameters:
+      - name: "proxy"
+        in: "path"
+        required: true
+        type: "string"
+      responses: {}
+      x-amazon-apigateway-integration:
+        responses:
+          default:
+            statusCode: "200"
+        uri: "arn:aws:apigateway:REGION:lambda:path/2015-03-31/functions/LAMBDA_ARN/invocations"
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+        type: "aws_proxy"
+definitions:
+  Empty:
+    type: "object"
+    title: "Empty Schema"
