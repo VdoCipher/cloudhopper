@@ -27,6 +27,8 @@
     "bluebird": "^3.4.1",
     "body-parser": "^1.15.2",
     "chai": "^3.5.0",
+    "eslint": "^3.12.1",
+    "eslint-config-google": "^0.7.1",
     "express": "^4.14.0",
     "jszip": "^3.1.1",
     "minimist": "^1.2.0",
