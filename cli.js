@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
 let fs = require('fs');
+let path = require('path');
 let aws = require('aws-sdk');
 let argv = require('minimist')(process.argv.slice(2));
 let JSZip = require('jszip');
+
+let FileUtils = require('./fileUtils');
 
 let log = (str) => {
   process.stdout.write(str);
@@ -57,33 +60,78 @@ class CLI {
    * upload the deployment package
    */
   deploy() {
-    let zip = new JSZip();
-    zip.file('index.js', fs.readFileSync('build/index.js'));
-    zip
-      .generateNodeStream({
-        type: 'nodebuffer',
-        streamFiles: true,
-        compression: 'DEFLATE',
-        compressionOptions: {
-          level: 9,
-        },
-      })
-      .pipe(fs.createWriteStream(this.config.tempFile))
-      .on('finish', () => {
-        let lambda= new aws.Lambda({
-          region: this.config.region,
-        });
-        let params = {
-          FunctionName: this.config.lambdaName,
-          ZipFile: fs.readFileSync(this.config.tempFile),
-        };
-        lambda.updateFunctionCode(params).promise()
+    let fu = new FileUtils();
+    fu.setIgnoreFile('.gitignore');
+    fu.setIgnoredModules(['aws-sdk']);
+    let afterZip = () => {
+      let lambda= new aws.Lambda({
+        region: this.config.region,
+      });
+      let s3= new aws.S3({
+        region: this.config.region,
+      });
+      let fileStream = fs.createReadStream(this.config.tempFile);
+      fileStream.on('open', function(self) {
+        return function() {
+          s3.putObject({
+            Bucket: 'vdocipher',
+            Key: 'clipstat.temp.zip',
+            ACL: 'public-read',
+            Body: fileStream,
+          }).promise()
+          .then((data) => {
+            console.log(data);
+            let params = {
+              FunctionName: self.config.lambdaName,
+              // ZipFile: fs.readFileSync(self.config.tempFile),
+              S3Bucket: 'vdocipher',
+              S3Key: 'clipstat.temp.zip',
+            };
+            return lambda.updateFunctionCode(params).promise();
+          })
+          .then((data) => {
+            console.log(data);
+            return lambda.updateFunctionConfiguration({
+              FunctionName: self.config.lambdaName,
+              Environment: {
+                Variables: self.config.stageVariables,
+              },
+            }).promise();
+          })
           .then((data) => {
             console.log(data);
           })
           .catch(console.log);
+        };
+      }(this));
+    };
+    fu.includeDependenciesFiles(process.cwd(), true)
+      .then((files) => {
+        console.log('obtained list of files ', files.length);
+        let zip = new JSZip();
+        for (let i = 0; i < files.length; i ++) {
+          zip.file(
+            files[i].replace(process.cwd(), ''),
+            fs.readFileSync(files[i])
+          );
+        }
+        console.log('done..');
+        zip
+          .generateNodeStream({
+            type: 'nodebuffer',
+            streamFiles: true,
+            compression: 'DEFLATE',
+            compressionOptions: {
+              level: 9,
+            },
+          })
+          .pipe(fs.createWriteStream(this.config.tempFile))
+          .on('finish', () => {
+            console.log('zip file created');
+            afterZip();
+          });
       });
-     }
+  }
 
 
   /**
