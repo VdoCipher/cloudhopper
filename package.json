@@ -2,9 +2,12 @@
   "name": "cloudhopper",
   "version": "1.1.2",
   "description": "Framework for deploying your APIs with AWS Lambda by VdoCipher",
-  "main": "index.js",
+  "main": "build/cloudhopper.js",
   "scripts": {
-    "test": "mocha -b --timeout 10000"
+    "test": "mocha -b --timeout 10000",
+    "test:watch": "mocha -b --timeout 10000 --watch",
+    "build:watch": "webpack -p --watch",
+    "build": "webpack -p"
   },
   "repository": {
     "type": "git",
@@ -33,6 +36,9 @@
     "jszip": "^3.1.1",
     "minimist": "^1.2.0",
     "mocha": "^3.0.2",
-    "wildcard": "^1.1.2"
+    "wildcard": "^1.1.2",
+    "webpack": "^1.14.0"
+  },
+  "dependencies": {
   }
 }
