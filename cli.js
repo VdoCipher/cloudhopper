@@ -41,7 +41,30 @@ class CLI {
    */
   runLocal() {
     process.env.NODE_ENV = 'local';
-    require(path.join(process.cwd(), 'index.js'));
+    this.config =
+      require(process.cwd() + '/local.cloudhopper.config.json')['local'];
+    for (let i in this.config.stageVariables) {
+      if (this.config.stageVariables.hasOwnProperty(i)) {
+        process.env[i] = this.config.stageVariables[i];
+      }
+    }
+    let appHandler = require(path.join(process.cwd(), 'index.js'));
+    let express = require('express');
+    let app = express();
+    let bodyParser = require('body-parser');
+    app.use(bodyParser.text({type: '*/*'}));
+    app.use(function(req, res) {
+      appHandler.handler(req, {}, function(err, data) {
+        res
+          .status(data.statusCode)
+          .set(data.headers)
+          .send(data.body);
+      });
+    });
+    app.listen(3000, function() {
+      console.log('Example app listening on port 3000!');
+    })
+    ;
   }
 
 

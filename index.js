@@ -31,20 +31,6 @@ class Cloudhopper {
    */
   use(router) {
     this.router = router;
-
-    if (process.env.NODE_ENV === 'local' && !global.isCommand) {
-      if (this.dockerInit) this.dockerInit();
-      let express = require('express');
-      let app = express();
-      let bodyParser = require('body-parser');
-      app.use(bodyParser.json());
-      app.use('/', router);
-
-      let port = process.env.PORT || 3000;
-      app.listen(port, () => {
-        console.log(`listening on http://127.0.0.1:${port}`);
-      });
-    }
   };
 
   /**
@@ -63,28 +49,22 @@ class Cloudhopper {
    * @param {Object} event
    * @param {Object} context
    * @param {function} callback
-   * @return {function} a function to assign it to
    */
-  handler() {
-    return this.getFunct(this);
-  }
-
-  /**
-   * @param {self} self
-   * @return {function} function which can handle aws lambda
-   */
-  getFunct(self) {
-    return (event, context, callback) => {
-      if (!event.requestContext) {
-        console.log('event.url is not available, hence just executing');
-        if (self.fallBack) {
-          self.fallBack(event, context, callback);
-        }
-        return;
+  handler(event, context, callback) {
+    if (!event.requestContext && !event.path) {
+      console.log('event.url is not available, hence just executing');
+      if (this.fallBack) {
+        this.fallBack(event, context, callback);
       }
+      return;
+    }
 
-      // process request params
-      let req = {
+    let res = new Response(context, callback);
+
+    // process request params
+    let req = event;
+    if (event.requestContext) {
+      req = {
         body: event.body,
         url: event.path,
         path: event.path,
@@ -94,26 +74,29 @@ class Cloudhopper {
         protocol: 'https',
         query: event.queryStringParameters,
       };
+    }
+    if (req.body !== '') {
+      console.log(event.body);
+      req.body = JSON.parse(req.body);
+    }
 
-      if (!self.dockerInitState) {
-        self.dockerInitState = true;
-        if (self.dockerInit) self.dockerInit();
-      }
+    if (!this.dockerInitState) {
+      this.dockerInitState = true;
+      if (this.dockerInit) this.dockerInit();
+    }
 
-      let res = new Response(context, callback);
-      self.router(req, res, function(err) {
-        if (err) {
-          console.log(err);
-          res.status(500).json({
-            message: `Application Error: ${err.message}`,
-          });
-          return;
-        }
-        res.status(404).json({
-          message: 'Not Found',
+    this.router(req, res, function(err) {
+      if (err) {
+        console.log(err);
+        res.status(500).json({
+          message: `Application Error: ${err.message}`,
         });
+        return;
+      }
+      res.status(404).json({
+        message: 'Not Found',
       });
-    };
+    });
   };
 }
 
