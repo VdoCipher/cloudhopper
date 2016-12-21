@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha -b --timeout 10000",
     "test:watch": "mocha -b --timeout 10000 --watch",
-    "build:watch": "webpack -p --watch",
+    "build:watch": "webpack --watch",
     "build": "webpack -p"
   },
   "repository": {
