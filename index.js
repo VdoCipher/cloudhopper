@@ -75,8 +75,7 @@ class Cloudhopper {
         query: event.queryStringParameters,
       };
     }
-    if (req.body !== '') {
-      console.log(event.body);
+    if (req.body !== '' && typeof(req.body) !== 'object' ) {
       req.body = JSON.parse(req.body);
     }
 
