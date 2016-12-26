@@ -99,4 +99,4 @@ class Cloudhopper {
   };
 }
 
-export default Cloudhopper;
+export {Cloudhopper, Response};
