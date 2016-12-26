@@ -33,7 +33,7 @@ class CLI {
     this.config.region = configArr[3];
     this.config.lambdaName = configArr[6];
     if(configArr.length === 8)
-      this.config.lambdaName = configArr[6] + ':' + configArr[7];
+      this.config.lambdaQualifier = configArr[7];
   }
 
   /**
@@ -102,24 +102,46 @@ class CLI {
             ACL: 'public-read',
             Body: fileStream,
           }).promise()
+
+          // 1. Set all the envs to the $LATEST code
           .then((data) => {
             console.log(data);
+            // updateFunctionConfiguration will always update the $LATEST
+            // version of your lambda function
+            let params = {
+              FunctionName: self.config.lambdaName,
+              Environment: {
+                Variables: self.config.stageVariables,
+              },
+            };
+            console.log('now set the envs to the $LATEST code ', params);
+            return lambda.updateFunctionConfiguration(params).promise();
+          })
+
+          // 2. update code of the $LATEST version
+          .then((data) => {
+            console.log(data);
+            console.log('update code base');
             let params = {
               FunctionName: self.config.lambdaName,
               // ZipFile: fs.readFileSync(self.config.tempFile),
               S3Bucket: 'vdocipher',
               S3Key: 'clipstat.temp.zip',
+              Publish: ( process.env.NODE_ENV === 'production' ),
             };
             return lambda.updateFunctionCode(params).promise();
           })
+
+          // update alias pointer of production if required
           .then((data) => {
-            console.log(data);
-            return lambda.updateFunctionConfiguration({
-              FunctionName: self.config.lambdaName,
-              Environment: {
-                Variables: self.config.stageVariables,
-              },
-            }).promise();
+            if (process.env.NODE_ENV === 'production') {
+              console.log('updating alias ', data.Version);
+              return lambda.updateAlias({
+                FunctionName: self.config.lambdaName,
+                Name: 'production',
+                FunctionVersion: data.Version,
+              }).promise();
+            }
           })
           .then((data) => {
             console.log(data);
@@ -162,8 +184,14 @@ class CLI {
    * @return {string} a json string for swagger file
    */
   getSwag() {
-    let swag = require('sampleyaml/proxy.json');
-    return swag;
+    let filename = `${__dirname}/sampleyaml/proxy.json`;
+    console.log('reading from filename: ', filename);
+    let swagJson = fs.readFileSync(filename, 'utf8');
+    swagJson = swagJson.replace(/LAMBDA_ARN/g, this.config.lambdaArn);
+    swagJson = swagJson.replace(/API_GATEWAY_TITLE/g, this.config.lambdaArn);
+    swagJson = swagJson.replace(/REGION/g, this.config.region);
+    console.log(swagJson);
+    return JSON.parse(swagJson);
   }
 
   /**
@@ -204,13 +232,19 @@ class CLI {
       let params = {
         FunctionName: this.config.lambdaName,
       };
+      if (this.config.lambdaQualifier) {
+        params.FunctionName =
+          this.config.lambdaName + ':' + this.config.lambdaQualifier;
+      }
       return lambda.getPolicy(params).promise();
     }).then((policy) => {
       console.log(policy);
       if (policy === null) {
         console.log('but policy was null');
       }
-      // TODO let existingPolicy = JSON.parse(policy.Policy);
+      let existingPolicy = JSON.parse(policy.Policy);
+      console.log(existingPolicy);
+      // TODO
     }).catch(console.log);
   }
 
