@@ -38,7 +38,7 @@ class Cloudhopper {
    * @param {funciton} f if no routes match, this is executed
    */
   setFallback(f) {
-    this.falBack = f;
+    this.fallBack = f;
   };
 
   /**
@@ -55,6 +55,8 @@ class Cloudhopper {
       console.log('event.url is not available, hence just executing');
       if (this.fallBack) {
         this.fallBack(event, context, callback);
+      } else {
+        console.log('fallback not available');
       }
       return;
     }
