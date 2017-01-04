@@ -1,7 +1,8 @@
 # CloudHopper
 
+**Update 2017-01-04 :** I have now updated this repo to use the API-G proxy integration. The main reason for going for 'emulating express' instead of 'bundling express' is to not to further extend the cold-start time. Starting a new express instance is a time-taking process. This affects everytime the number of concurrent invocations is increased. Also, the bundling up of all required modules seemed like a good idea. There are many use-cases when aws-serverless-express is a better idea then using cloudhopper, but I shall stick with this for now.
 
-AWS Lambda has now a better method of Proxy Integration with API Gateway. As such, this repo is now depraced. I am working on updating it to make better use of latest features in Lambda and API-G.
+**Update 2016-11-09 :** AWS Lambda has now a better method of Proxy Integration with API Gateway. As such, this repo is now depraced. I am working on updating it to make better use of latest features in Lambda and API-G.
 
 [![Join the chat at https://gitter.im/VdoCipher/cloudhopper](https://badges.gitter.im/VdoCipher/cloudhopper.svg)](https://gitter.im/VdoCipher/cloudhopper?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/VdoCipher/cloudhopper.svg?branch=master)](https://travis-ci.org/VdoCipher/cloudhopper)
