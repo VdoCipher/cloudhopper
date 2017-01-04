@@ -1,56 +1,104 @@
 'use strict';
 
-let Response = require('./lib/response')
-let dockerInit;
-let dockerInitState	= false;
-let router;
+let Response = require('./lib/response');
 
-exports.setInit = (initFunction) => {
-	dockerInit = initFunction
+/**
+ * Cloudhopper class
+ */
+class Cloudhopper {
+  /**
+   * hello
+   */
+  constructor() {
+    //
+  }
+
+  /**
+   * set any function to be executed when a new lambda invocation
+   * is created. Use this to run some initilization
+   * @param {function} initFunction
+   */
+  setInit(initFunction) {
+    this.dockerInit = initFunction;
+  };
+
+  /**
+   * Set the router to be used.
+   * Use a non-express router to keep dependencies
+   * to a minimum. `npm i router` works flawless
+   *
+   * @param {Router} router create a new Router() and pass it here
+   */
+  use(router) {
+    this.router = router;
+  };
+
+  /**
+   * Use this function to handle events not coming from url
+   * @param {funciton} f if no routes match, this is executed
+   */
+  setFallback(f) {
+    this.fallBack = f;
+  };
+
+  /**
+   * This is the main handler function
+   * Set this with `export.handler = cloudhopper.handler`
+   * Do not worry about the arguments, aws will provide them
+   *
+   * @param {Object} event
+   * @param {Object} context
+   * @param {function} callback
+   */
+  handler(event, context, callback) {
+    if (!event.requestContext && !event.path) {
+      console.log('event.url is not available, hence just executing');
+      if (this.fallBack) {
+        this.fallBack(event, context, callback);
+      } else {
+        console.log('fallback not available');
+      }
+      return;
+    }
+
+    let res = new Response(context, callback);
+
+    // process request params
+    let req = event;
+    if (event.requestContext) {
+      req = {
+        body: event.body,
+        url: event.path,
+        path: event.path,
+        method: event.httpMethod,
+        ip: event.requestContext.identity.sourceIp,
+        headers: event.headers,
+        protocol: 'https',
+        query: event.queryStringParameters,
+      };
+    }
+    if (req.body !== '' && typeof(req.body) !== 'object' ) {
+      req.body = JSON.parse(req.body);
+    }
+
+    if (!this.dockerInitState) {
+      this.dockerInitState = true;
+      if (this.dockerInit) this.dockerInit();
+    }
+
+    this.router(req, res, function(err) {
+      if (err) {
+        console.log('index.js:89' + err);
+        res.status(500).json({
+          message: `Application Error: ${err.message}`,
+        });
+        return;
+      }
+      res.status(404).json({
+        message: 'Not Found',
+      });
+    });
+  };
 }
 
-exports.use = (router_) => {
-	router = router_
-
-	if (process.env.NODE_ENV === "development") {
-		global.stage_vars = require(process.cwd() + '/local.cloudhopper.config.json').stageVariables.development
-		dockerInit()
-		var express = require('express');
-		var app = express()
-		var bodyParser = require('body-parser');
-		app.use(bodyParser.json());
-		app.use('/', router)
-
-		let port = process.env.PORT || 3000
-		app.listen(port, () => {
-			console.log(`listening on http://127.0.0.1:${port}`)
-		})
-	}
-}
-
-exports.handler = (event, context, callback) => {
-
-	// process request params
-	let req = event;
-	req.url = req.url.replace(/\{([a-zA-Z0-9]+)\}/g, (match, $1) => req.params[$1]);
-
-	if (!dockerInitState) {
-		dockerInitState = true;
-		global.stage_vars = req['stage-variables'];
-		dockerInit();
-	}
-
-	var res = new Response(context, callback)
-	router(req, res, function(err){
-		if (err) {
-			console.log(err)
-			res.status(500).json({
-				message: `Application Error: ${err.message}`
-			})
-			return;
-		}
-		res.status(404).json({
-			message: "Not Found"
-		})
-	});
-}
+export {Cloudhopper, Response};

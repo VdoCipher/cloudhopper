@@ -1,227 +1,276 @@
 #!/usr/bin/env node
-/* jshint expr: true */
+
+let fs = require('fs');
+let path = require('path');
+let aws = require('aws-sdk');
+let argv = require('minimist')(process.argv.slice(2));
+let JSZip = require('jszip');
+
+let FileUtils = require('./fileUtils');
+
+let log = (str) => {
+  process.stdout.write(str);
+};
 
 
-let aws = require("aws-sdk")
-let fs = require("fs")
-let argv = require('minimist')(process.argv.slice(2))
-let bluebird = require("bluebird");
-let path = require('path')
-let wildcard = require('wildcard')
-let JSZip = require('jszip')
-
-bluebird.promisifyAll(fs)
-
-
+/**
+ * Provides CLI commands
+ */
 class CLI {
-	constructor() {
-		var env = (process.env.NODE_ENV==="production")?"production":"development"
-		this.config = require(process.cwd() + "/local.cloudhopper.config.json")[env]
-	}
+  /**
+   * checks the right conv
+   */
+  constructor() {
+    // parse the configuration object from local config
+    let env = (process.env.NODE_ENV==='production')?'production':'development';
+    this.config =
+      require(process.cwd() + '/local.cloudhopper.config.json')[env];
+    let configArr = this.config.lambdaArn.split(':');
+    if (configArr.length > 9) {
+      console.log('That lambdaArn is longer than usual.');
+      process.exit(1);
+    }
+    this.config.region = configArr[3];
+    this.config.lambdaName = configArr[6];
+    if(configArr.length === 8)
+      this.config.lambdaQualifier = configArr[7];
+  }
 
-	runLocal() {
-		process.env.NODE_ENV = "development"
-		require(path.join(process.cwd(), 'index.js'))
-	}
-
-	deploy() {
-		var ignored = fs.readFileSync('.gitignore').toString().split("\n")
-		ignored.push('node_modules')
-		ignored = ignored.filter(l => (l !== '' && l.trim().substr(0,1) !== '#'))
-
-		var getAllFiles = (baseDir, Ignore) => fs.readdirAsync(baseDir)
-			.then(files => Promise.all(files
-				.filter(f => f.substr(0,1) !== ".")
-				.filter(f => ignored.reduce((a, b) => !Ignore || (a && !wildcard(b, f)), true))
-				.map(f => path.join(baseDir, f))
-				.map(f => fs.statAsync(f)
-					.then(stat => {
-						if(stat.isDirectory())
-							return getAllFiles(f)
-						else if (stat.isFile())
-							return f
-					})
-				)
-			))
-			.then(files => [].concat(...files))
-		var zip = new JSZip();
-		var blacklist = ['md', 'html', 'git', 'gitignore'];
-		var includeDependencies = (baseDir, ignore) => {
-			return getAllFiles(baseDir, ignore)
-				.then(files => {
-					return Promise.all(files.map(f => {
-						zip.file(f.replace(process.cwd(), ''), fs.readFileSync(f))
-					}))}
-				)
-				.then(() => {
-					var b = require(path.join(baseDir, 'package.json')).dependencies
-					var a = Object.keys(b || {})
-						.map(module => includeDependencies(path.join(process.cwd(), 'node_modules', module), false))
-					return Promise.all(a)
-				})
-		}
-		includeDependencies(process.cwd(), true)
-			.then(()=> {
-				console.log("writing to file ")
-				var config = this.config;
-				zip
-					.generateNodeStream({
-						type:'nodebuffer',
-						streamFiles:true,
-						compression: 'DEFLATE',
-						compressionOptions: {
-							level: 9
-						}
-					})
-					.pipe(fs.createWriteStream(config.tempFile))
-					.on('finish', function () {
-						console.log("Zip created uploading... ")
-						var lambda= new aws.Lambda({
-							region: config.region
-						});
-						var params = {
-						  FunctionName: config.lambdaName,
-						  ZipFile: fs.readFileSync(config.tempFile)
-						};
-						lambda.updateFunctionCode(params).promise()
-							.then(data => {
-								console.log(data)
-							})
-							.catch(console.log)
-					})
-			})
-	}
+  /**
+   * run as a local express application
+   */
+  runLocal() {
+    process.env.NODE_ENV = 'local';
+    this.config =
+      require(process.cwd() + '/local.cloudhopper.config.json')['local'];
+    for (let i in this.config.stageVariables) {
+      if (this.config.stageVariables.hasOwnProperty(i)) {
+        process.env[i] = this.config.stageVariables[i];
+      }
+    }
+    let appHandler = require(path.join(process.cwd(), 'index.js'));
+    let express = require('express');
+    let app = express();
+    let bodyParser = require('body-parser');
+    app.use(bodyParser.text({type: '*/*'}));
+    app.use(function(req, res) {
+      appHandler.handler(req, {}, function(err, data) {
+        res
+          .status(data.statusCode)
+          .set(data.headers)
+          .send(data.body);
+      });
+    });
+    app.listen(3000, function() {
+      console.log('Express app listening on port 3000!');
+    })
+    ;
+  }
 
 
+  /**
+   * Run as a command locally
+   * @param {Array<string>} args The name of function to execute
+   */
+  execLocal(args) {
+    global.isCommand = true;
+    process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+    console.log('ENV SET TO: ', process.env.NODE_ENV);
+    require(process.cwd() + '/index.js').handler(args);
+  }
 
-	getSwag() {
-		var swag = {
-			swagger: 2.0,
-			info: {
-				title: this.config.apiTitle
-			},
-			paths: { }
-		}
-		var defaults = {
-			"consumes": [ "application/json" ],
-			"produces": [ "application/json" ],
-			"parameters": [
-				{
-				  "name": "p1",
-				  "in": "path",
-				  "required": true,
-				  "type": "string"
-				}
-			],
-			responses: {},
-			'x-amazon-apigateway-integration': {
-				"requestTemplates": {
-					"application/json": "##  See http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html\n#set($paramsMeta = {\"headers\": \"header\", \"query\": \"querystring\", \"params\": \"path\"})\n#set($allParams =  $input.params())\n{\n\"body\" : $input.json('$'),\n\"url\"   :   \"$context.resourcePath\",\n\"path\"   :   \"$context.resourcePath\",\n\"method\": \"$context.httpMethod\",\n\"ip\"    :   \"$context.identity.sourceIp\",\n#foreach($type in $paramsMeta.keySet())\n#set($params = $allParams.get($paramsMeta.get($type)))\n\"$type\" : {\n  #foreach($paramName in $params.keySet())\n  \"$paramName\" : \"$util.escapeJavaScript($params.get($paramName))\"\n  #if($foreach.hasNext),#end\n  #end\n}\n#if($foreach.hasNext),#end\n#end\n,\n\"stage-variables\" : {\n#foreach($key in $stageVariables.keySet())\n\"$key\" : \"$util.escapeJavaScript($stageVariables.get($key))\",\n#end\n  \"stage\" : \"$context.stage\"\n}\n}\n"
-				},
-				"uri": `arn:aws:apigateway:${this.config.region}:lambda:path/2015-03-31/functions/${this.config.lambdaArn}/invocations`,
-				"passthroughBehavior": "never",
-				"httpMethod": "POST",
-				"type": "aws"
-			}
-		}
+  /**
+   * upload the deployment package
+   */
+  deploy() {
+    let fu = new FileUtils();
+    fu.setIgnoreFile('.gitignore');
+    fu.setIgnoredModules(['aws-sdk']);
+    let afterZip = () => {
+      let lambda= new aws.Lambda({
+        region: this.config.region,
+      });
+      let s3= new aws.S3({
+        region: this.config.region,
+      });
+      let fileStream = fs.createReadStream(this.config.tempFile);
+      fileStream.on('open', function(self) {
+        return function() {
+          s3.putObject({
+            Bucket: 'vdocipher',
+            Key: 'clipstat.temp.zip',
+            ACL: 'public-read',
+            Body: fileStream,
+          }).promise()
 
-		var headers = ['Server', 'dockerCounter', 'dockerInitTime', 'Location']
-		var statusCodes = ["200", "201", "204", "301", "302", "303", "307", "400", "401", "403", "404", "415", "500", "501", "502", "503", "504"]
-		var paths = ['/','/{p1}', '/{p1}/{p2}', '/{p1}/{p2}/{p3}']
-		var methods = ['get', 'post', 'put', 'delete', 'patch']
+          // 1. Set all the envs to the $LATEST code
+          .then((data) => {
+            console.log(data);
+            // updateFunctionConfiguration will always update the $LATEST
+            // version of your lambda function
+            let params = {
+              FunctionName: self.config.lambdaName,
+              Environment: {
+                Variables: self.config.stageVariables,
+              },
+            };
+            console.log('now set the envs to the $LATEST code ', params);
+            return lambda.updateFunctionConfiguration(params).promise();
+          })
 
-		var headersObject = {}
-		var responsesObject = {}
-		var xamz_responsesObject = {}
-		var xamz_headersObject = {}
-		var pathObject = {}
+          // 2. update code of the $LATEST version
+          .then((data) => {
+            console.log(data);
+            console.log('update code base');
+            let params = {
+              FunctionName: self.config.lambdaName,
+              // ZipFile: fs.readFileSync(self.config.tempFile),
+              S3Bucket: 'vdocipher',
+              S3Key: 'clipstat.temp.zip',
+              Publish: ( process.env.NODE_ENV === 'production' ),
+            };
+            return lambda.updateFunctionCode(params).promise();
+          })
 
-		for (var header of headers) {
-			headersObject[header] = {type: "string"}
-			xamz_headersObject[`method.response.header.${header}`] = `integration.response.body.headers.${header}`
-		}
-
-		for (var code of statusCodes) {
-			responsesObject[code] = {
-				headers: headersObject
-			}
-			if (code === "200") {
-				xamz_responsesObject["default"] = {
-					statusCode : code,
-					responseParameters: xamz_headersObject,
-					responseTemplates : {
-						"application/json": "$input.json('$.body')"
-					}
-				}
-			}
-			else {
-				var regex = `.*\\\"code\\\":${code}.*`
-				xamz_responsesObject[regex] = {
-					statusCode: code,
-					responseParameters: xamz_headersObject,
-					responseTemplates : {
-						"application/json": "#set ($errorMessageObj = $util.parseJson($input.path('$.errorMessage')))\n{\n#foreach($type in $errorMessageObj.get('body').keySet())\n    \"$type\" : \"$errorMessageObj.get('body').get($type)\"\n    #if($foreach.hasNext),#end\n#end\n}"
-					}
-				}
-			}
-		}
-
-		defaults.responses = responsesObject
-		defaults['x-amazon-apigateway-integration'].responses = xamz_responsesObject
-
-		for (var method of methods) {
-			pathObject[method] = defaults
-		}
-
-		for (var path of paths) {
-			swag.paths[path] = pathObject
-		}
-		return swag
-	}
-
-	setUpApi() {
-		var apigateway = new aws.APIGateway({
-			region: this.config.region
-		});
-		apigateway.putRestApi({
-			restApiId: this.config.restApiId,
-			body : new Buffer(JSON.stringify(this.getSwag())),
-			mode: "overwrite",
-		}).promise().then(data => {
-			console.log(data)
-			return
-		}).then(() => {
-			return apigateway.createDeployment({
-				restApiId : this.config.restApiId,
-				stageName : this.config.stageName,
-				cacheClusterEnabled: false,
-				variables: this.config.stageVariables
-			}).promise()
-		}).then((data) => {
-			console.log(data)
-		}).catch(console.log)
-	}
+          // update alias pointer of production if required
+          .then((data) => {
+            if (process.env.NODE_ENV === 'production') {
+              console.log('updating alias ', data.Version);
+              return lambda.updateAlias({
+                FunctionName: self.config.lambdaName,
+                Name: 'production',
+                FunctionVersion: data.Version,
+              }).promise();
+            }
+          })
+          .then((data) => {
+            console.log(data);
+          })
+          .catch(console.log);
+        };
+      }(this));
+    };
+    fu.includeDependenciesFiles(process.cwd(), true)
+      .then((files) => {
+        console.log('obtained list of files ', files.length);
+        let zip = new JSZip();
+        for (let i = 0; i < files.length; i ++) {
+          zip.file(
+            files[i].replace(process.cwd(), ''),
+            fs.readFileSync(files[i])
+          );
+        }
+        console.log('done..');
+        zip
+          .generateNodeStream({
+            type: 'nodebuffer',
+            streamFiles: true,
+            compression: 'DEFLATE',
+            compressionOptions: {
+              level: 9,
+            },
+          })
+          .pipe(fs.createWriteStream(this.config.tempFile))
+          .on('finish', () => {
+            console.log('zip file created');
+            afterZip();
+          });
+      });
+  }
 
 
-	help() {
-		let helpText = `
-		Usage: 
-			npm run cloudhopper -- COMMAND
+  /**
+   * Returns a swagger file
+   * @return {string} a json string for swagger file
+   */
+  getSwag() {
+    let filename = `${__dirname}/sampleyaml/proxy.json`;
+    console.log('reading from filename: ', filename);
+    let swagJson = fs.readFileSync(filename, 'utf8');
+    swagJson = swagJson.replace(/LAMBDA_ARN/g, this.config.lambdaArn);
+    swagJson = swagJson.replace(/API_GATEWAY_TITLE/g, this.config.lambdaArn);
+    swagJson = swagJson.replace(/REGION/g, this.config.region);
+    console.log(swagJson);
+    return JSON.parse(swagJson);
+  }
 
-		COMMAND can be one of:
-		1. setUpApi: overwrites the API Gateway to route all data to lambda running cloudhopper
-		2. deploy: Creates a lambda deployment package and uploads it to lambda
-		3. runLocal: Prepares an express server and servers the API locally
-		4. help: displays this help text
-		`
-		console.log(helpText)
-	}
+  /**
+   * Create a new API Gateway in the region
+   * 1. upload the swag file to API_G
+   * 2. create a new deployment to specified stage
+   * 3. check if lambda policy has permission for it
+   * 4. set up the policy permission on lambda
+   */
+  setUpApi() {
+    log('API creating...\t\t');
+    let apigateway = new aws.APIGateway({
+      region: this.config.region,
+    });
+    apigateway.putRestApi({
+      restApiId: this.config.restApiId,
+      body: new Buffer(JSON.stringify(this.getSwag())),
+      mode: 'overwrite',
+    }).promise().then((data) => {
+      log('done\n');
+      return;
+    }).then(() => {
+      log('API deployment...\t\t');
+      return apigateway.createDeployment({
+        restApiId: this.config.restApiId,
+        stageName: this.config.stageName,
+        cacheClusterEnabled: false,
+        variables: this.config.stageVariables,
+      }).promise();
+    }).then((data) => {
+      log('done\n');
+      log(`URL: https://${this.config.restApiId}.execute-api.us-east-1.amazonaws.com/${this.config.stageName}\n`);
+      log('setting up permissions on lambda....');
+      // TODO: set up correct permissions on lambda function
+      let lambda= new aws.Lambda({
+        region: this.config.region,
+      });
+      let params = {
+        FunctionName: this.config.lambdaName,
+      };
+      if (this.config.lambdaQualifier) {
+        params.FunctionName =
+          this.config.lambdaName + ':' + this.config.lambdaQualifier;
+      }
+      return lambda.getPolicy(params).promise();
+    }).then((policy) => {
+      console.log(policy);
+      if (policy === null) {
+        console.log('but policy was null');
+      }
+      let existingPolicy = JSON.parse(policy.Policy);
+      console.log(existingPolicy);
+      // TODO
+    }).catch(console.log);
+  }
+
+
+  /**
+   * Print a help block
+   */
+  help() {
+    let helpText = `
+    Usage: 
+      npm run cloudhopper -- COMMAND
+
+    COMMAND can be one of:
+    1. setUpApi: overwrites the API Gateway to route all
+        data to lambda running cloudhopper
+    2. deploy: Creates a lambda deployment package and uploads it to lambda
+    3. runLocal: Prepares an express server and servers the API locally
+    4. help: displays this help text
+    `;
+    console.log(helpText);
+  }
 }
 
 
+let c = new CLI();
+let f = c[argv._[0]];
 
-var c = new CLI()
-var f = c[argv._[0]]
-
-f || c.help()
-f && f.bind(c)()
+f || c.help();
+f && f.bind(c)(argv);
