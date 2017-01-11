@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+'use strict';
+
 let fs = require('fs');
 let path = require('path');
 let aws = require('aws-sdk');
@@ -87,6 +89,7 @@ class CLI {
     fu.setIgnoreFile('.gitignore');
     fu.setIgnoredModules(['aws-sdk']);
     let afterZip = () => {
+      console.log(`begin zip upload from `, this.config);
       let lambda= new aws.Lambda({
         region: this.config.region,
       });
@@ -96,16 +99,17 @@ class CLI {
       let fileStream = fs.createReadStream(this.config.tempFile);
       fileStream.on('open', function(self) {
         return function() {
+          console.log('uploading to s3');
           s3.putObject({
-            Bucket: 'vdocipher',
-            Key: 'clipstat.temp.zip',
+            Bucket: self.config.tempS3Bucket,
+            Key: `${self.config.lambdaName}.temp.zip`,
             ACL: 'public-read',
             Body: fileStream,
           }).promise()
 
           // 1. Set all the envs to the $LATEST code
           .then((data) => {
-            console.log(data);
+            console.log('uploaded to s3: ', data);
             // updateFunctionConfiguration will always update the $LATEST
             // version of your lambda function
             let params = {
@@ -120,13 +124,12 @@ class CLI {
 
           // 2. update code of the $LATEST version
           .then((data) => {
-            console.log(data);
-            console.log('update code base');
+            console.log('updated function conf:', data);
             let params = {
               FunctionName: self.config.lambdaName,
               // ZipFile: fs.readFileSync(self.config.tempFile),
-              S3Bucket: 'vdocipher',
-              S3Key: 'clipstat.temp.zip',
+              S3Bucket: self.config.tempS3Bucket,
+              S3Key: `${self.config.lambdaName}.temp.zip`,
               Publish: ( process.env.NODE_ENV === 'production' ),
             };
             return lambda.updateFunctionCode(params).promise();
@@ -134,6 +137,7 @@ class CLI {
 
           // update alias pointer of production if required
           .then((data) => {
+            console.log('moved from s3 to lambda');
             if (process.env.NODE_ENV === 'production') {
               console.log('updating alias ', data.Version);
               return lambda.updateAlias({
@@ -223,7 +227,7 @@ class CLI {
       }).promise();
     }).then((data) => {
       log('done\n');
-      log(`URL: https://${this.config.restApiId}.execute-api.us-east-1.amazonaws.com/${this.config.stageName}\n`);
+      log(`URL: https://${this.config.restApiId}.execute-api.${this.config.region}.amazonaws.com/${this.config.stageName}\n`);
       log('setting up permissions on lambda....');
       // TODO: set up correct permissions on lambda function
       let lambda= new aws.Lambda({
