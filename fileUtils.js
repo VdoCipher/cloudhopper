@@ -7,6 +7,8 @@ let wildcard = require('wildcard');
 let bluebird = require('bluebird');
 bluebird.promisifyAll(fs);
 
+let arraySpread = require('./arraySpread');
+
 /**
  * Fileutils provides utilities for doing file/folder listing
  * adding all files in directory excluding ignored files and parsing
@@ -82,7 +84,7 @@ class FileUtils {
           })
         )
       ))
-      .then((files) => [].concat(...files));
+      .then((files) => arraySpread(files));
   }
 
   /**
@@ -121,7 +123,7 @@ class FileUtils {
         return Promise.all(nextReturn);
       })
       .then((files) => {
-        let combined = [].concat(...files);
+        let combined = arraySpread(files);
         return combined.reduce((a, b) => {
           return a.concat(b);
         }, []);
