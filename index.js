@@ -61,8 +61,6 @@ class Cloudhopper {
       return;
     }
 
-    let res = new Response(context, callback);
-
     // process request params
     let req = event;
     if (event.requestContext) {
@@ -77,6 +75,8 @@ class Cloudhopper {
         query: event.queryStringParameters,
       };
     }
+    let res = new Response(context, callback, req);
+
     if (req.body !== '' && typeof(req.body) !== 'object' ) {
       req.body = JSON.parse(req.body);
     }
