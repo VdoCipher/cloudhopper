@@ -88,7 +88,7 @@ class Cloudhopper {
 
     this.router(req, res, function(err) {
       if (err) {
-        console.log('index.js:89 ', err);
+        console.error('router error handle ', err.mesage, err.stack);
         res.status(500).json({
           message: `Application Error: ${err.message}`,
         });
