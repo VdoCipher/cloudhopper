@@ -89,7 +89,7 @@ class CLI {
     fu.setIgnoreFile('.gitignore');
     fu.setIgnoredModules(['aws-sdk']);
     let afterZip = () => {
-      console.log(`begin zip upload from `, this.config);
+      console.log(`begin zip upload from `);
       let lambda= new aws.Lambda({
         region: this.config.region,
       });
@@ -118,13 +118,13 @@ class CLI {
                 Variables: self.config.stageVariables,
               },
             };
-            console.log('now set the envs to the $LATEST code ', params);
+            console.log('now set the envs to the $LATEST code');
             return lambda.updateFunctionConfiguration(params).promise();
           })
 
           // 2. update code of the $LATEST version
           .then((data) => {
-            console.log('updated function conf:', data);
+            console.log('updated function conf:');
             let params = {
               FunctionName: self.config.lambdaName,
               // ZipFile: fs.readFileSync(self.config.tempFile),
