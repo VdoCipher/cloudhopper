@@ -99,7 +99,11 @@ class FileUtils {
     return this.getAllFiles(baseDir, ignore)
       .then((files) => {
         currDirFiles = files;
-        let b = require(path.join(baseDir, 'package.json')).dependencies;
+        let packageJson = require(path.join(baseDir, 'package.json'));
+        let b = packageJson.dependencies;
+        if (packageJson.name === 'cloudhopper') {
+          return [];
+        }
         return Object.keys(b || {});
       })
       .then((modules) =>
