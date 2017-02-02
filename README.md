@@ -100,7 +100,7 @@ Step 4: Make sure the IAM user in `~/.aws/credentials` has the following permiss
 ```
 Step 5: Create an empty API Gateway and basic lambda function.
 
-Step 6: Create a git-ignored file `local.cloudhopper.json` with the following:
+Step 6: Create a git-ignored file `local.cloudhopper.config.json` with the following:
 ```
 {
 	"lambda_function_name": "xxxxxx",
@@ -113,6 +113,7 @@ Step 6: Create a git-ignored file `local.cloudhopper.json` with the following:
 	"tempFile": "<temp file which is in ignored list>",
 	"lambdaArn": "<lambda_arn>",
 	"stageVariables": {
+		"local": { },
 		"development": { },
 		"production": { }
 	}
