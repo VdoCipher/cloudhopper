@@ -24,18 +24,22 @@ class CLI {
    */
   constructor() {
     // parse the configuration object from local config
-    let env = (process.env.NODE_ENV==='production')?'production':'development';
-    this.config =
-      require(process.cwd() + '/local.cloudhopper.config.json')[env];
-    let configArr = this.config.lambdaArn.split(':');
-    if (configArr.length > 9) {
-      console.log('That lambdaArn is longer than usual.');
-      process.exit(1);
+    let env = process.env.NODE_ENV;
+    if (!env)
+      env = 'development';
+    if (env !== 'local') {
+      this.config =
+        require(process.cwd() + '/local.cloudhopper.config.json')[env];
+      let configArr = this.config.lambdaArn.split(':');
+      if (configArr.length > 9) {
+        console.log('That lambdaArn is longer than usual.');
+        process.exit(1);
+      }
+      this.config.region = configArr[3];
+      this.config.lambdaName = configArr[6];
+      if(configArr.length === 8)
+        this.config.lambdaQualifier = configArr[7];
     }
-    this.config.region = configArr[3];
-    this.config.lambdaName = configArr[6];
-    if(configArr.length === 8)
-      this.config.lambdaQualifier = configArr[7];
   }
 
   /**
